@@ -44,6 +44,8 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
             }
         }
 
+        if (last2ServiceMap.size() < 2) return alerts;
+
         for (int j = index + 2; j < transactions.size() - 1; j++) {
             TransactionEvent currentTransaction = transactions.get(j);
             TransactionEvent previousTransaction = transactions.get(j - 1);

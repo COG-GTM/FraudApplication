@@ -112,6 +112,24 @@ class PingPongActivityServiceImplTest {
     }
 
     @Test
+    void testAllSameServiceNoException() {
+        Instant base = Instant.now();
+        List<TransactionEvent> transactions = new ArrayList<>();
+        // All transactions to the same service — last2ServiceMap never reaches size 2
+        transactions.add(TransactionEvent.builder().timestamp(base).amount(100.0).userID("user1").serviceID("serviceA").build());
+        transactions.add(TransactionEvent.builder().timestamp(base.plusSeconds(60)).amount(100.0).userID("user1").serviceID("serviceA").build());
+        transactions.add(TransactionEvent.builder().timestamp(base.plusSeconds(120)).amount(100.0).userID("user1").serviceID("serviceA").build());
+        transactions.add(TransactionEvent.builder().timestamp(base.plusSeconds(180)).amount(100.0).userID("user1").serviceID("serviceA").build());
+        transactions.add(TransactionEvent.builder().timestamp(base.plusSeconds(240)).amount(100.0).userID("user1").serviceID("serviceA").build());
+
+        List<Alert> alerts = new ArrayList<>();
+        List<Alert> result = pingPongActivityService.checkPingPongActivity(transactions, alerts, "user1");
+
+        assertTrue(result.isEmpty());
+        verify(alertGenerator, never()).generatePingPongAlert(anyString());
+    }
+
+    @Test
     void testEmptyTransactionList() {
         List<TransactionEvent> transactions = new ArrayList<>();
         List<Alert> alerts = new ArrayList<>();
