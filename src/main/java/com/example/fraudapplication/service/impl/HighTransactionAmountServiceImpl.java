@@ -28,6 +28,8 @@ public class HighTransactionAmountServiceImpl implements HighTransactionAmountSe
                 .filter(event -> event.getTimestamp().isAfter(Instant.now().minusSeconds(24 * 60 * 60)))
                 .toList().size();
 
+        if (total24HoursTransaction == 0) return alerts;
+
         if (!transactions.isEmpty()) {
             double averageAmount = totalAmount / total24HoursTransaction;
             for(TransactionEvent event : transactions){

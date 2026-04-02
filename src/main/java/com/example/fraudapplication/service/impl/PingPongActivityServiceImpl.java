@@ -23,6 +23,8 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
     public List<Alert> checkPingPongActivity(List<TransactionEvent> transactions, List<Alert> alerts,
                                              String userId) {
 
+        if (transactions == null || transactions.isEmpty()) return alerts;
+
         Map<String, TransactionEvent> last2ServiceMap = new LinkedHashMap<>();
         TransactionEvent firstTransaction = transactions.get(0);
 
@@ -41,6 +43,8 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
                 break;
             }
         }
+
+        if (last2ServiceMap.size() < 2) return alerts;
 
         for (int j = index + 2; j < transactions.size() - 1; j++) {
             TransactionEvent currentTransaction = transactions.get(j);
