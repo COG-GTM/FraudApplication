@@ -23,6 +23,8 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
     public List<Alert> checkPingPongActivity(List<TransactionEvent> transactions, List<Alert> alerts,
                                              String userId) {
 
+        if (transactions == null || transactions.isEmpty()) return alerts;
+
         Map<String, TransactionEvent> last2ServiceMap = new LinkedHashMap<>();
         TransactionEvent firstTransaction = transactions.get(0);
 

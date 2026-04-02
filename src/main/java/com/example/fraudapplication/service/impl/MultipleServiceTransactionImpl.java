@@ -21,6 +21,8 @@ public class MultipleServiceTransactionImpl implements MultipleServiceTransactio
     public List<Alert> checkMultipleServiceTransactions(List<TransactionEvent> transactions, List<Alert> alerts,
                                                         String userId) {
 
+        if (transactions == null || transactions.isEmpty()) return alerts;
+
         Map<String, String> distintServiceMap = new HashMap<>();
 
         TransactionEvent firstTransaction = transactions.get(0);
