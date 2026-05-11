@@ -14,7 +14,7 @@ Analyzing sequences of transactions to detect ping-pong activities.
 
 Implementation Details
 
-Language: Java(SpringBoot)
+Language: Java 21 (SpringBoot)
 Simulation: Utilizing in-memory queues for simulating real-time data processing.
 Handling Out-of-Order Events: Employing event timestamp tracking to handle network latencies and out-of-order events efficiently.
 
