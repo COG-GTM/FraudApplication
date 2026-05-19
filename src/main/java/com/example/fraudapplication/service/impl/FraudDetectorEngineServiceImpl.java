@@ -10,6 +10,7 @@ import com.example.fraudapplication.service.PingPongActivityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +34,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
         }
         for (String userID : distinctUserIDs) {
             List<TransactionEvent> transactions = fraudDetectorEngine.getUserTransactions()
-                    .computeIfAbsent(userID, k -> new ArrayList<>());
+                    .computeIfAbsent(userID, k -> Collections.synchronizedList(new ArrayList<>()));
             List<TransactionEvent> userEvents = events.stream()
                     .filter(event -> event.getUserID().equals(userID))
                     .toList();
@@ -45,7 +46,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
             multipleServiceTransaction.checkMultipleServiceTransactions(userEvents, alerts, userID);
         }
 
-        return alerts;
+        return new ArrayList<>(alerts);
     }
 
     @Override
@@ -57,7 +58,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
         }
         for (String userID : distinctUserIDs) {
             List<TransactionEvent> transactions = fraudDetectorEngine.getUserTransactions()
-                    .computeIfAbsent(userID, k -> new ArrayList<>());
+                    .computeIfAbsent(userID, k -> Collections.synchronizedList(new ArrayList<>()));
             List<TransactionEvent> userEvents = events.stream()
                     .filter(event -> event.getUserID().equals(userID))
                     .toList();
@@ -67,7 +68,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
             alerts.addAll(highTransactionAmountService.checkHighAmountTransactions(userEvents, alerts, userID));
         }
 
-        return alerts;
+        return new ArrayList<>(alerts);
     }
 
     @Override
@@ -79,7 +80,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
         }
         for (String userID : distinctUserIDs) {
             List<TransactionEvent> transactions = fraudDetectorEngine.getUserTransactions()
-                    .computeIfAbsent(userID, k -> new ArrayList<>());
+                    .computeIfAbsent(userID, k -> Collections.synchronizedList(new ArrayList<>()));
             List<TransactionEvent> userEvents = events.stream()
                     .filter(event -> event.getUserID().equals(userID))
                     .toList();
@@ -89,7 +90,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
             alerts.addAll(pingPongActivityService.checkPingPongActivity(userEvents, alerts, userID));
         }
 
-        return alerts;
+        return new ArrayList<>(alerts);
     }
 
     @Override
@@ -101,7 +102,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
         }
         for (String userID : distinctUserIDs) {
             List<TransactionEvent> transactions = fraudDetectorEngine.getUserTransactions()
-                    .computeIfAbsent(userID, k -> new ArrayList<>());
+                    .computeIfAbsent(userID, k -> Collections.synchronizedList(new ArrayList<>()));
             List<TransactionEvent> userEvents = events.stream()
                     .filter(event -> event.getUserID().equals(userID))
                     .toList();
@@ -111,7 +112,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
             alerts.addAll(multipleServiceTransaction.checkMultipleServiceTransactions(userEvents, alerts, userID));
         }
 
-        return alerts;
+        return new ArrayList<>(alerts);
     }
 
 }
