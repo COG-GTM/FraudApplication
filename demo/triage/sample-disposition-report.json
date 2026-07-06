@@ -1,0 +1,251 @@
+{
+    "total": 24,
+    "countsByDisposition": {
+        "AUTO_CLOSE_FALSE_POSITIVE": 16,
+        "INVESTIGATE": 5,
+        "ESCALATE_SAR": 3
+    },
+    "autoCloseRate": 0.6666666666666666,
+    "results": [
+        {
+            "alertId": "ALRT-1001",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-8842",
+            "riskScore": 32,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a recurring/known counterparty with verified KYC. Risk score 32 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1002",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-2317",
+            "riskScore": 28,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a whitelisted counterparty with verified KYC. Risk score 28 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1003",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-5590",
+            "riskScore": 24,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Ping-pong movement is between the customer's own internal accounts. Risk score 24 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1004",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-7781",
+            "riskScore": 30,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Ping-pong movement is between the customer's own internal accounts. Risk score 30 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1005",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-3344",
+            "riskScore": 41,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Multiple-service activity on a registered business account is expected. Risk score 41 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1006",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-9021",
+            "riskScore": 38,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Multiple-service activity on a registered business account is expected. Risk score 38 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1007",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-6655",
+            "riskScore": 35,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a whitelisted counterparty with verified KYC. Risk score 35 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1008",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-1290",
+            "riskScore": 26,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a recurring/known counterparty with verified KYC. Risk score 26 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1009",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-4412",
+            "riskScore": 22,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Ping-pong movement is between the customer's own internal accounts. Risk score 22 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1010",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-7788",
+            "riskScore": 44,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Multiple-service activity on a registered business account is expected. Risk score 44 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1011",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-2048",
+            "riskScore": 47,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a recurring/known counterparty with verified KYC. Risk score 47 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1012",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-3737",
+            "riskScore": 33,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a whitelisted counterparty with verified KYC. Risk score 33 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1013",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-8123",
+            "riskScore": 27,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Ping-pong movement is between the customer's own internal accounts. Risk score 27 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1014",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-5501",
+            "riskScore": 49,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Multiple-service activity on a registered business account is expected. Risk score 49 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1015",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-6104",
+            "riskScore": 39,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "High-value payment to a whitelisted counterparty with verified KYC. Risk score 39 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1016",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-9955",
+            "riskScore": 42,
+            "disposition": "AUTO_CLOSE_FALSE_POSITIVE",
+            "ruleFired": 3,
+            "rationale": "Multiple-service activity on a registered business account is expected. Risk score 42 is below the auto-close ceiling of 60; closed as a false positive with rationale logged for audit.",
+            "requiresHumanReview": false
+        },
+        {
+            "alertId": "ALRT-1017",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-4820",
+            "riskScore": 68,
+            "disposition": "INVESTIGATE",
+            "ruleFired": 4,
+            "rationale": "No financial-crime red flags and does not match a known-good pattern; routed to a fraud analyst for review (risk score 68).",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1018",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-3391",
+            "riskScore": 71,
+            "disposition": "INVESTIGATE",
+            "ruleFired": 4,
+            "rationale": "No financial-crime red flags and does not match a known-good pattern; routed to a fraud analyst for review (risk score 71).",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1019",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-7014",
+            "riskScore": 66,
+            "disposition": "INVESTIGATE",
+            "ruleFired": 4,
+            "rationale": "No financial-crime red flags and does not match a known-good pattern; routed to a fraud analyst for review (risk score 66).",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1020",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-2260",
+            "riskScore": 74,
+            "disposition": "INVESTIGATE",
+            "ruleFired": 4,
+            "rationale": "No financial-crime red flags and does not match a known-good pattern; routed to a fraud analyst for review (risk score 74).",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1021",
+            "alertType": "MULTIPLE_SERVICE",
+            "customerRef": "CUST-5677",
+            "riskScore": 63,
+            "disposition": "INVESTIGATE",
+            "ruleFired": 4,
+            "rationale": "No financial-crime red flags and does not match a known-good pattern; routed to a fraud analyst for review (risk score 63).",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1022",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-8899",
+            "riskScore": 91,
+            "disposition": "ESCALATE_SAR",
+            "ruleFired": 1,
+            "rationale": "Financial-crime red flag present (sanctions match); routed to the SAR / EDD queue for a financial-crime investigator.",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1023",
+            "alertType": "PING_PONG",
+            "customerRef": "CUST-1155",
+            "riskScore": 88,
+            "disposition": "ESCALATE_SAR",
+            "ruleFired": 1,
+            "rationale": "Financial-crime red flag present (politically exposed person match); routed to the SAR / EDD queue for a financial-crime investigator.",
+            "requiresHumanReview": true
+        },
+        {
+            "alertId": "ALRT-1024",
+            "alertType": "HIGH_TRANSACTION",
+            "customerRef": "CUST-6743",
+            "riskScore": 84,
+            "disposition": "ESCALATE_SAR",
+            "ruleFired": 1,
+            "rationale": "Financial-crime red flag present (structuring pattern); routed to the SAR / EDD queue for a financial-crime investigator.",
+            "requiresHumanReview": true
+        }
+    ]
+}

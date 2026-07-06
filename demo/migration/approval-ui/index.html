@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Fraud Alert Review — Human Approval Gate</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --muted:#94a3b8; --text:#e2e8f0;
+            --accent:#38bdf8; --green:#22c55e; --amber:#f59e0b; --red:#ef4444; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+           background:var(--bg); color:var(--text); }
+    header { padding:20px 28px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+             justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    header h1 { font-size:19px; margin:0; }
+    header .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+    main { max-width:1000px; margin:0 auto; padding:24px 28px 60px; }
+    .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+    button { background:var(--accent); color:#082f49; border:none; padding:9px 14px; border-radius:8px;
+             font-weight:600; cursor:pointer; font-size:13px; }
+    button.secondary { background:transparent; color:var(--text); border:1px solid var(--line); }
+    button.approve { background:var(--red); color:#fff; }
+    button.reject { background:transparent; color:var(--text); border:1px solid var(--line); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .stats { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+    .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; min-width:120px; }
+    .stat .n { font-size:24px; font-weight:700; }
+    .stat .l { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+    .card h3 { margin:0 0 4px; font-size:15px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; color:var(--muted); font-size:13px; margin:6px 0 10px; }
+    .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700; }
+    .badge.ESCALATE_SAR { background:rgba(239,68,68,.15); color:#fca5a5; }
+    .badge.INVESTIGATE { background:rgba(245,158,11,.15); color:#fcd34d; }
+    .rationale { background:#0b1220; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+                 font-size:13px; color:#cbd5e1; margin-bottom:12px; }
+    textarea { width:100%; background:#0b1220; color:var(--text); border:1px solid var(--line);
+               border-radius:8px; padding:8px 10px; font-size:13px; resize:vertical; min-height:44px; margin-bottom:10px; }
+    .actions { display:flex; gap:10px; }
+    .empty { color:var(--muted); text-align:center; padding:40px; border:1px dashed var(--line); border-radius:12px; }
+    .outcome { font-size:12px; color:var(--muted); }
+    .err { background:rgba(239,68,68,.12); border:1px solid var(--red); color:#fca5a5;
+           padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+    const API = (window.API_BASE || "http://localhost:8090") + "/api";
+
+    // Representative alerts spanning auto-close, investigate and escalate outcomes.
+    const SAMPLE_ALERTS = [
+      { alertId:"ALRT-2001", alertType:"HIGH_TRANSACTION", customerRef:"CUST-8842", riskScore:32,
+        counterpartyType:"RECURRING_PAYEE", kycVerified:true },
+      { alertId:"ALRT-2002", alertType:"PING_PONG", customerRef:"CUST-5590", riskScore:24,
+        counterpartyType:"INTERNAL_ACCOUNT" },
+      { alertId:"ALRT-2003", alertType:"MULTIPLE_SERVICE", customerRef:"CUST-3344", riskScore:41,
+        accountType:"BUSINESS", counterpartyType:"MERCHANT" },
+      { alertId:"ALRT-2017", alertType:"HIGH_TRANSACTION", customerRef:"CUST-4820", riskScore:68,
+        counterpartyType:"NEW_PAYEE", kycVerified:true },
+      { alertId:"ALRT-2019", alertType:"PING_PONG", customerRef:"CUST-7014", riskScore:66,
+        counterpartyType:"EXTERNAL_ACCOUNT" },
+      { alertId:"ALRT-2022", alertType:"HIGH_TRANSACTION", customerRef:"CUST-8899", riskScore:91,
+        counterpartyType:"NEW_PAYEE", sanctionsHit:true },
+      { alertId:"ALRT-2023", alertType:"PING_PONG", customerRef:"CUST-1155", riskScore:88,
+        counterpartyType:"EXTERNAL_ACCOUNT", pepMatch:true },
+    ];
+
+    function App() {
+      const [tasks, setTasks] = useState([]);
+      const [notes, setNotes] = useState({});
+      const [error, setError] = useState(null);
+      const [busy, setBusy] = useState(false);
+      const [seeded, setSeeded] = useState(0);
+      const [resolved, setResolved] = useState(0);
+
+      const refresh = useCallback(async () => {
+        try {
+          const res = await fetch(API + "/tasks");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          setTasks(await res.json());
+          setError(null);
+        } catch (e) {
+          setError("Cannot reach the workflow API at " + API + " (" + e.message +
+                   "). Start the camunda-service on port 8090.");
+        }
+      }, []);
+
+      useEffect(() => { refresh(); const t = setInterval(refresh, 3000); return () => clearInterval(t); }, [refresh]);
+
+      async function seed() {
+        setBusy(true);
+        try {
+          for (const a of SAMPLE_ALERTS) {
+            await fetch(API + "/cases", { method:"POST", headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify(a) });
+          }
+          setSeeded(s => s + SAMPLE_ALERTS.length);
+          await refresh();
+        } catch (e) { setError("Failed to seed alerts: " + e.message); }
+        setBusy(false);
+      }
+
+      async function decide(task, approved) {
+        setBusy(true);
+        try {
+          await fetch(API + "/tasks/" + task.taskId + "/complete", {
+            method:"POST", headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify({ approved, analystNotes: notes[task.taskId] || "" })
+          });
+          setResolved(r => r + 1);
+          await refresh();
+        } catch (e) { setError("Failed to complete task: " + e.message); }
+        setBusy(false);
+      }
+
+      return (
+        <div>
+          <header>
+            <div>
+              <h1>Fraud Alert Review — Human Approval Gate</h1>
+              <div className="sub">Camunda 7 workflow migrated from Pega · only genuine exceptions reach this queue</div>
+            </div>
+            <div className="toolbar">
+              <button onClick={seed} disabled={busy}>Seed sample alerts</button>
+              <button className="secondary" onClick={refresh} disabled={busy}>Refresh</button>
+            </div>
+          </header>
+          <main>
+            {error && <div className="err">{error}</div>}
+            <div className="stats">
+              <div className="stat"><div className="n">{seeded}</div><div className="l">Alerts submitted</div></div>
+              <div className="stat"><div className="n">{tasks.length}</div><div className="l">Awaiting analyst</div></div>
+              <div className="stat"><div className="n">{resolved}</div><div className="l">Resolved by you</div></div>
+              <div className="stat"><div className="n" style={{color:"var(--green)"}}>
+                {seeded > 0 ? Math.round((seeded - tasks.length) / seeded * 100) : 0}%</div>
+                <div className="l">Cleared</div></div>
+            </div>
+
+            {tasks.length === 0 && (
+              <div className="empty">
+                No alerts awaiting review. False positives are auto-closed by the workflow —
+                click <b>Seed sample alerts</b> to push a batch through.
+              </div>
+            )}
+
+            {tasks.map(t => (
+              <div className="card" key={t.taskId}>
+                <h3>{t.alertId} <span className={"badge " + t.disposition}>{t.disposition}</span></h3>
+                <div className="row">
+                  <span>Risk score: <b>{t.riskScore}</b></span>
+                  <span>Task: {t.name}</span>
+                </div>
+                <div className="rationale"><b>Automated rationale:</b> {t.triageRationale}</div>
+                <textarea placeholder="Analyst notes (optional)"
+                  value={notes[t.taskId] || ""}
+                  onChange={e => setNotes({ ...notes, [t.taskId]: e.target.value })} />
+                <div className="actions">
+                  <button className="approve" onClick={() => decide(t, true)} disabled={busy}>
+                    Confirm escalation → SAR</button>
+                  <button className="reject" onClick={() => decide(t, false)} disabled={busy}>
+                    Override &amp; close</button>
+                </div>
+              </div>
+            ))}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  fraud-alert-review-workflow:
+    build: .
+    image: fraud-alert-review-workflow:latest
+    ports:
+      - "8090:8090"
+    environment:
+      # Demo runs on the embedded in-memory H2 database. To point at Postgres in
+      # production, override the datasource properties below.
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:fraud-workflow;DB_CLOSE_ON_EXIT=FALSE
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: sa
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/api/tasks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

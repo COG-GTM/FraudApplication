@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_FraudAlertReview"
+                  targetNamespace="http://cognition.ai/demo/fraud"
+                  exporter="Devin (migrated from Pega FraudAlertReview flow)"
+                  exporterVersion="1.0">
+  <bpmn:process id="fraud-alert-review" name="Fraud Alert Review" isExecutable="true"
+                camunda:historyTimeToLive="30">
+    <bpmn:documentation>Migrated from the Pega "FraudAlertReview" case flow. Enriches an
+      incoming fraud alert, runs automated triage, auto-closes false positives, and routes
+      genuine exceptions through a human approval gate before escalating to the SAR queue or
+      closing the case.</bpmn:documentation>
+
+    <bpmn:startEvent id="StartEvent_AlertReceived" name="Alert received">
+      <bpmn:outgoing>Flow_ToEnrich</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_EnrichAlert" name="Enrich alert"
+                      camunda:delegateExpression="${enrichAlertDelegate}">
+      <bpmn:incoming>Flow_ToEnrich</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToTriage</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AutomatedTriage" name="Automated triage"
+                      camunda:delegateExpression="${automatedTriageDelegate}">
+      <bpmn:incoming>Flow_ToTriage</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAutoCloseGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_IsAutoClose" name="Auto-close?">
+      <bpmn:incoming>Flow_ToAutoCloseGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoClose</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NeedsReview</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AutoCloseCase" name="Auto-close case"
+                      camunda:delegateExpression="${autoCloseCaseDelegate}">
+      <bpmn:incoming>Flow_AutoClose</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToClosed</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_AutoClosed" name="Closed (false positive)">
+      <bpmn:incoming>Flow_ToClosed</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:userTask id="Task_AnalystReview" name="Analyst review (approval gate)"
+                   camunda:candidateGroups="fraud-analysts">
+      <bpmn:documentation>Human approval gate. The analyst reviews the alert and its
+        automated disposition, then sets the boolean variable "approved" (true = confirm the
+        escalation, false = override and close).</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="approved" label="Confirm escalation?" type="boolean" />
+          <camunda:formField id="analystNotes" label="Analyst notes" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_NeedsReview</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToApprovalGateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ReviewApproved" name="Escalation confirmed?">
+      <bpmn:incoming>Flow_ToApprovalGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_EscalateToSar" name="Escalate to SAR queue"
+                      camunda:delegateExpression="${escalateToSarDelegate}">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEscalated</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_Escalated" name="Escalated to SAR">
+      <bpmn:incoming>Flow_ToEscalated</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_CloseCase" name="Close case (analyst override)"
+                      camunda:delegateExpression="${closeCaseDelegate}">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDismissed</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_Dismissed" name="Closed by analyst">
+      <bpmn:incoming>Flow_ToDismissed</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_ToEnrich" sourceRef="StartEvent_AlertReceived" targetRef="Task_EnrichAlert" />
+    <bpmn:sequenceFlow id="Flow_ToTriage" sourceRef="Task_EnrichAlert" targetRef="Task_AutomatedTriage" />
+    <bpmn:sequenceFlow id="Flow_ToAutoCloseGateway" sourceRef="Task_AutomatedTriage" targetRef="Gateway_IsAutoClose" />
+    <bpmn:sequenceFlow id="Flow_AutoClose" name="false positive" sourceRef="Gateway_IsAutoClose" targetRef="Task_AutoCloseCase">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${disposition == 'AUTO_CLOSE_FALSE_POSITIVE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NeedsReview" name="needs review" sourceRef="Gateway_IsAutoClose" targetRef="Task_AnalystReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${disposition != 'AUTO_CLOSE_FALSE_POSITIVE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToClosed" sourceRef="Task_AutoCloseCase" targetRef="End_AutoClosed" />
+    <bpmn:sequenceFlow id="Flow_ToApprovalGateway" sourceRef="Task_AnalystReview" targetRef="Gateway_ReviewApproved" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="confirmed" sourceRef="Gateway_ReviewApproved" targetRef="Task_EscalateToSar">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="override / close" sourceRef="Gateway_ReviewApproved" targetRef="Task_CloseCase">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToEscalated" sourceRef="Task_EscalateToSar" targetRef="End_Escalated" />
+    <bpmn:sequenceFlow id="Flow_ToDismissed" sourceRef="Task_CloseCase" targetRef="End_Dismissed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="fraud-alert-review">
+      <bpmndi:BPMNShape id="StartEvent_AlertReceived_di" bpmnElement="StartEvent_AlertReceived">
+        <dc:Bounds x="152" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="140" y="245" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EnrichAlert_di" bpmnElement="Task_EnrichAlert">
+        <dc:Bounds x="240" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AutomatedTriage_di" bpmnElement="Task_AutomatedTriage">
+        <dc:Bounds x="400" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_IsAutoClose_di" bpmnElement="Gateway_IsAutoClose" isMarkerVisible="true">
+        <dc:Bounds x="555" y="195" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="556" y="171" width="52" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AutoCloseCase_di" bpmnElement="Task_AutoCloseCase">
+        <dc:Bounds x="660" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_AutoClosed_di" bpmnElement="End_AutoClosed">
+        <dc:Bounds x="822" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="800" y="125" width="82" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AnalystReview_di" bpmnElement="Task_AnalystReview">
+        <dc:Bounds x="660" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ReviewApproved_di" bpmnElement="Gateway_ReviewApproved" isMarkerVisible="true">
+        <dc:Bounds x="805" y="305" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="795" y="281" width="72" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EscalateToSar_di" bpmnElement="Task_EscalateToSar">
+        <dc:Bounds x="920" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Escalated_di" bpmnElement="End_Escalated">
+        <dc:Bounds x="1082" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1060" y="265" width="82" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseCase_di" bpmnElement="Task_CloseCase">
+        <dc:Bounds x="920" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Dismissed_di" bpmnElement="End_Dismissed">
+        <dc:Bounds x="1082" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1063" y="445" width="76" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_ToEnrich_di" bpmnElement="Flow_ToEnrich">
+        <di:waypoint x="188" y="220" /><di:waypoint x="240" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToTriage_di" bpmnElement="Flow_ToTriage">
+        <di:waypoint x="340" y="220" /><di:waypoint x="400" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAutoCloseGateway_di" bpmnElement="Flow_ToAutoCloseGateway">
+        <di:waypoint x="500" y="220" /><di:waypoint x="555" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AutoClose_di" bpmnElement="Flow_AutoClose">
+        <di:waypoint x="580" y="195" /><di:waypoint x="580" y="100" /><di:waypoint x="660" y="100" />
+        <bpmndi:BPMNLabel><dc:Bounds x="586" y="140" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToClosed_di" bpmnElement="Flow_ToClosed">
+        <di:waypoint x="760" y="100" /><di:waypoint x="822" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NeedsReview_di" bpmnElement="Flow_NeedsReview">
+        <di:waypoint x="580" y="245" /><di:waypoint x="580" y="330" /><di:waypoint x="660" y="330" />
+        <bpmndi:BPMNLabel><dc:Bounds x="584" y="300" width="65" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToApprovalGateway_di" bpmnElement="Flow_ToApprovalGateway">
+        <di:waypoint x="760" y="330" /><di:waypoint x="805" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="830" y="305" /><di:waypoint x="830" y="240" /><di:waypoint x="920" y="240" />
+        <bpmndi:BPMNLabel><dc:Bounds x="836" y="270" width="52" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToEscalated_di" bpmnElement="Flow_ToEscalated">
+        <di:waypoint x="1020" y="240" /><di:waypoint x="1082" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="830" y="355" /><di:waypoint x="830" y="420" /><di:waypoint x="920" y="420" />
+        <bpmndi:BPMNLabel><dc:Bounds x="833" y="390" width="74" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDismissed_di" bpmnElement="Flow_ToDismissed">
+        <di:waypoint x="1020" y="420" /><di:waypoint x="1082" y="420" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

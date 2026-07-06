@@ -49,3 +49,10 @@ Note
 Update the generateTransactionEvents() method with actual logic to generate transaction events.
 Ensure the CSV file path (CSV_FILE_PATH) is correct and accessible.
 
+---
+
+Fraud & Financial Crime Demo
+A demo package for first-pass alert triage plus a Pega -> Camunda migration slice lives
+under demo/ (see demo/README.md). It adds an auditable triage engine (GET /fraud/triage)
+to this application and a migrated Camunda 7 + React human-approval-gate workflow.
+

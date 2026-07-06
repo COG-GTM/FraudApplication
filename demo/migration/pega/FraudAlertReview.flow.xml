@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Representative, anonymised Pega flow export for the "FraudAlertReview" case type.
+  This is a simplified stand-in for a real Rule-Obj-Flow RAP export: shape/connector
+  structure and rule references are preserved so the migration to BPMN is faithful,
+  but proprietary metadata has been stripped. This is the "before" artifact the room
+  sees; Devin derives the executable BPMN (../bpmn/fraud-alert-review.bpmn) from it.
+-->
+<pegarules xmlns:pega="http://www.pega.com/rules">
+  <rule pzInsKey="RULE-OBJ-FLOW COG-FCC-WORK FRAUDALERTREVIEW #20240115T101500.000 GMT"
+        pyClassName="Rule-Obj-Flow"
+        pyRuleName="FraudAlertReview"
+        pyAppliesTo="COG-FCC-Work-FraudAlert"
+        pyRuleSet="FinancialCrime"
+        pyRuleSetVersion="01-05-10">
+
+    <flow pyFlowType="ProcessFlow" pyStartTaskName="AlertReceived">
+
+      <!-- Case properties referenced by the flow -->
+      <properties>
+        <property name=".AlertID" type="Text" />
+        <property name=".Disposition" type="Text" />
+        <property name=".RiskScore" type="Integer" />
+        <property name=".Approved" type="TrueFalse" />
+        <property name=".AnalystNotes" type="Text" />
+      </properties>
+
+      <shapes>
+        <shape type="StartEvent" name="AlertReceived" id="Start0" />
+
+        <shape type="Utility" name="EnrichAlert" id="Util1">
+          <activity>EnrichFraudAlert</activity>
+          <description>Gather customer, counterparty and KYC context for the alert.</description>
+        </shape>
+
+        <shape type="Utility" name="AutomatedTriage" id="Util2">
+          <activity>RunAutomatedTriage</activity>
+          <description>Apply the triage decision table; sets .Disposition and .RiskScore.</description>
+        </shape>
+
+        <shape type="Decision" name="IsAutoClose" id="Dec1">
+          <decisionRule type="When">IsFalsePositive</decisionRule>
+          <when>.Disposition == "AUTO_CLOSE_FALSE_POSITIVE"</when>
+        </shape>
+
+        <shape type="Utility" name="AutoCloseCase" id="Util3">
+          <activity>AutoCloseFraudCase</activity>
+          <description>Resolve the case as a false positive with rationale logged.</description>
+        </shape>
+
+        <shape type="Assignment" name="AnalystReview" id="Assign1">
+          <router>ToWorkbasket</router>
+          <workbasket>FraudAnalysts@cog</workbasket>
+          <flowAction name="ConfirmEscalation">
+            <setsProperty name=".Approved" value="true" />
+          </flowAction>
+          <flowAction name="OverrideAndClose">
+            <setsProperty name=".Approved" value="false" />
+          </flowAction>
+          <description>Human approval gate: analyst confirms or overrides the disposition.</description>
+        </shape>
+
+        <shape type="Decision" name="ReviewApproved" id="Dec2">
+          <decisionRule type="When">EscalationConfirmed</decisionRule>
+          <when>.Approved == true</when>
+        </shape>
+
+        <shape type="Utility" name="EscalateToSAR" id="Util4">
+          <activity>RaiseSARReferral</activity>
+          <description>Create a SAR referral and route to the financial-crime queue.</description>
+        </shape>
+
+        <shape type="Utility" name="CloseCase" id="Util5">
+          <activity>CloseFraudCase</activity>
+          <description>Analyst override: close the case with notes.</description>
+        </shape>
+
+        <shape type="EndEvent" name="ClosedFalsePositive" id="End1" />
+        <shape type="EndEvent" name="EscalatedToSAR" id="End2" />
+        <shape type="EndEvent" name="ClosedByAnalyst" id="End3" />
+      </shapes>
+
+      <connectors>
+        <connector from="Start0" to="Util1" type="Straight" />
+        <connector from="Util1" to="Util2" type="Straight" />
+        <connector from="Util2" to="Dec1" type="Straight" />
+        <connector from="Dec1" to="Util3" type="Connector" likelyResult="true" label="false positive" />
+        <connector from="Dec1" to="Assign1" type="Connector" likelyResult="false" label="needs review" />
+        <connector from="Util3" to="End1" type="Straight" />
+        <connector from="Assign1" to="Dec2" type="Straight" />
+        <connector from="Dec2" to="Util4" type="Connector" likelyResult="true" label="confirmed" />
+        <connector from="Dec2" to="Util5" type="Connector" likelyResult="false" label="override / close" />
+        <connector from="Util4" to="End2" type="Straight" />
+        <connector from="Util5" to="End3" type="Straight" />
+      </connectors>
+    </flow>
+  </rule>
+</pegarules>
