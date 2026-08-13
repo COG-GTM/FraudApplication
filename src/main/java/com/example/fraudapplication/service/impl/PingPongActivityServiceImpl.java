@@ -8,64 +8,53 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class PingPongActivityServiceImpl implements PingPongActivityService {
+
+    /** FR-PPA-003: window covering the bounce sequence, in seconds (boundary inclusive). */
+    public static final long PING_PONG_WINDOW_SECONDS = 10 * 60;
+
+    private static final Duration PING_PONG_WINDOW = Duration.ofSeconds(PING_PONG_WINDOW_SECONDS);
+
+    /** FR-PPA-003: number of consecutive alternating transactions that constitute a bounce. */
+    public static final int PING_PONG_SEQUENCE_LENGTH = 4;
 
     private final AlertGenerator alertGenerator;
 
     @Override
     public List<Alert> checkPingPongActivity(List<TransactionEvent> transactions, List<Alert> alerts,
                                              String userId) {
-
-        Map<String, TransactionEvent> last2ServiceMap = new LinkedHashMap<>();
-        TransactionEvent firstTransaction = transactions.get(0);
-
-        last2ServiceMap.put(firstTransaction.getServiceID(), firstTransaction);
-
-        int index = 0;
-        for (int i = 1; i < transactions.size(); i++) {
-            TransactionEvent nextTransaction = transactions.get(i);
-            if (!firstTransaction.getServiceID().equals(nextTransaction.getServiceID())
-                    && Duration.between(firstTransaction.getTimestamp(),
-                    nextTransaction.getTimestamp()).getSeconds() <= (10 * 60)) {
-                last2ServiceMap.put(nextTransaction.getServiceID(), nextTransaction);
-            }
-            if (last2ServiceMap.size() == 2) {
-                index = transactions.lastIndexOf(nextTransaction);
-                break;
-            }
+        if (transactions == null || transactions.size() < PING_PONG_SEQUENCE_LENGTH) {
+            return alerts;
         }
 
-        for (int j = index + 2; j < transactions.size() - 1; j++) {
-            TransactionEvent currentTransaction = transactions.get(j);
-            TransactionEvent previousTransaction = transactions.get(j - 1);
+        List<TransactionEvent> ordered = transactions.stream()
+                .filter(event -> event != null && event.getTimestamp() != null && event.getServiceID() != null)
+                .sorted(Comparator.comparing(TransactionEvent::getTimestamp))
+                .toList();
 
-            Iterator<Map.Entry<String, TransactionEvent>> iterator = last2ServiceMap.entrySet().iterator();
-            Map.Entry<String, TransactionEvent> firstEntry = iterator.next();
-            Map.Entry<String, TransactionEvent> secondEntry = iterator.next();
+        int i = PING_PONG_SEQUENCE_LENGTH - 1;
+        while (i < ordered.size()) {
+            TransactionEvent first = ordered.get(i - 3);
+            TransactionEvent second = ordered.get(i - 2);
+            TransactionEvent third = ordered.get(i - 1);
+            TransactionEvent fourth = ordered.get(i);
 
-            firstTransaction = firstEntry.getValue();
-            TransactionEvent secondTransaction = secondEntry.getValue();
+            boolean alternating = !first.getServiceID().equals(second.getServiceID())
+                    && first.getServiceID().equals(third.getServiceID())
+                    && second.getServiceID().equals(fourth.getServiceID());
+            boolean withinWindow = Duration.between(first.getTimestamp(), fourth.getTimestamp())
+                    .compareTo(PING_PONG_WINDOW) <= 0;
 
-            Duration duration = Duration.between(firstTransaction.getTimestamp(), currentTransaction.getTimestamp());
-
-            if (firstTransaction.getServiceID().equals(previousTransaction.getServiceID()) &&
-                    secondTransaction.getServiceID().equals(currentTransaction.getServiceID()) &&
-                    duration.getSeconds() <= (10 * 60)) {
+            if (alternating && withinWindow) {
                 alerts.add(alertGenerator.generatePingPongAlert(userId));
-                last2ServiceMap.clear();
-                last2ServiceMap.put(previousTransaction.getServiceID(), previousTransaction);
-                last2ServiceMap.put(currentTransaction.getServiceID(), currentTransaction);
-            } else if (!secondTransaction.getServiceID().equals(previousTransaction.getServiceID())) {
-                String removedService = firstTransaction.getServiceID();
-                last2ServiceMap.remove(removedService);
-                last2ServiceMap.put(previousTransaction.getServiceID(), previousTransaction);
+                i += PING_PONG_SEQUENCE_LENGTH;
+            } else {
+                i++;
             }
         }
         return alerts;

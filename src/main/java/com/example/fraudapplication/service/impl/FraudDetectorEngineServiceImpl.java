@@ -64,7 +64,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
 
             transactions.addAll(userEvents);
 
-            alerts.addAll(highTransactionAmountService.checkHighAmountTransactions(userEvents, alerts, userID));
+            highTransactionAmountService.checkHighAmountTransactions(userEvents, alerts, userID);
         }
 
         return alerts;
@@ -86,7 +86,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
 
             transactions.addAll(userEvents);
 
-            alerts.addAll(pingPongActivityService.checkPingPongActivity(userEvents, alerts, userID));
+            pingPongActivityService.checkPingPongActivity(userEvents, alerts, userID);
         }
 
         return alerts;
@@ -108,7 +108,7 @@ public class FraudDetectorEngineServiceImpl implements FraudDetectorEngineServic
 
             transactions.addAll(userEvents);
 
-            alerts.addAll(multipleServiceTransaction.checkMultipleServiceTransactions(userEvents, alerts, userID));
+            multipleServiceTransaction.checkMultipleServiceTransactions(userEvents, alerts, userID);
         }
 
         return alerts;
