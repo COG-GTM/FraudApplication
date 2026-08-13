@@ -107,6 +107,16 @@ class HighTransactionAmountServiceImplTest {
     }
 
     @Test
+    void nonPositiveAmountsAreExcludedFromScoringAndBaseline() {
+        // refunds/zero-value records are not "high amount" candidates and must not drag the
+        // baseline down; the 500.00 transaction is still scored against the 100.00 baseline
+        List<Alert> alerts = run(event(100.00, 90), event(100.00, 80), event(100.00, 70),
+                event(100.00, 60), event(-900.00, 50), event(0.00, 40), event(500.00, 10));
+
+        assertEquals(1, highTransactionAlerts(alerts));
+    }
+
+    @Test
     void emptyTransactionListIsHandled() {
         assertEquals(0, highTransactionAlerts(run()));
     }

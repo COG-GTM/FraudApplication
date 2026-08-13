@@ -44,7 +44,7 @@ public class HighTransactionAmountServiceImpl implements HighTransactionAmountSe
 
         for (TransactionEvent event : scored) {
             double baseline = (totalAmount - event.getAmount()) / (scored.size() - 1);
-            if (baseline > 0 && event.getAmount() >= (HIGH_AMOUNT_MULTIPLIER * baseline)) {
+            if (event.getAmount() >= (HIGH_AMOUNT_MULTIPLIER * baseline)) {
                 alerts.add(alertGenerator.generateHighTransactionAlert(userId));
             }
         }

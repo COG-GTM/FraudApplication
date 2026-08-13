@@ -22,6 +22,8 @@ public class MultipleServiceTransactionImpl implements MultipleServiceTransactio
     /** FR-MST-002: sliding window length, in seconds (boundary inclusive). */
     public static final long DISTINCT_SERVICE_WINDOW_SECONDS = 5 * 60;
 
+    private static final Duration DISTINCT_SERVICE_WINDOW = Duration.ofSeconds(DISTINCT_SERVICE_WINDOW_SECONDS);
+
     /** FR-MST-002: more than this many distinct services inside the window is fraudulent. */
     public static final int DISTINCT_SERVICE_THRESHOLD = 3;
 
@@ -43,7 +45,7 @@ public class MultipleServiceTransactionImpl implements MultipleServiceTransactio
         for (TransactionEvent event : ordered) {
             window.addLast(event);
             while (!window.isEmpty() && Duration.between(window.peekFirst().getTimestamp(),
-                    event.getTimestamp()).getSeconds() > DISTINCT_SERVICE_WINDOW_SECONDS) {
+                    event.getTimestamp()).compareTo(DISTINCT_SERVICE_WINDOW) > 0) {
                 window.removeFirst();
             }
 

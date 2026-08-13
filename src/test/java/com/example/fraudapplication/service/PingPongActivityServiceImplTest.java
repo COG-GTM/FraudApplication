@@ -32,6 +32,11 @@ class PingPongActivityServiceImplTest {
         return new TransactionEvent(BASE.plusSeconds(secondsFromBase), 100.00, USER, serviceId);
     }
 
+    private static TransactionEvent event(String serviceId, long secondsFromBase, long millisFromBase) {
+        return new TransactionEvent(BASE.plusSeconds(secondsFromBase).plusMillis(millisFromBase),
+                100.00, USER, serviceId);
+    }
+
     private List<Alert> run(TransactionEvent... events) {
         return service.checkPingPongActivity(new ArrayList<>(Arrays.asList(events)),
                 new ArrayList<>(), USER);
@@ -63,6 +68,14 @@ class PingPongActivityServiceImplTest {
     void bounceJustOutsideWindowDoesNotAlert() {
         List<Alert> alerts = run(event("serviceA", 0), event("serviceB", 100), event("serviceA", 200),
                 event("serviceB", 601));
+
+        assertEquals(0, pingPongAlerts(alerts));
+    }
+
+    @Test
+    void subSecondOverrunOfTheWindowDoesNotAlert() {
+        List<Alert> alerts = run(event("serviceA", 0), event("serviceB", 100), event("serviceA", 200),
+                event("serviceB", 600, 1));
 
         assertEquals(0, pingPongAlerts(alerts));
     }

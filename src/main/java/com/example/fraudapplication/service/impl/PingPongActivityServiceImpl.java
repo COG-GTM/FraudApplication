@@ -18,6 +18,8 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
     /** FR-PPA-003: window covering the bounce sequence, in seconds (boundary inclusive). */
     public static final long PING_PONG_WINDOW_SECONDS = 10 * 60;
 
+    private static final Duration PING_PONG_WINDOW = Duration.ofSeconds(PING_PONG_WINDOW_SECONDS);
+
     /** FR-PPA-003: number of consecutive alternating transactions that constitute a bounce. */
     public static final int PING_PONG_SEQUENCE_LENGTH = 4;
 
@@ -46,7 +48,7 @@ public class PingPongActivityServiceImpl implements PingPongActivityService {
                     && first.getServiceID().equals(third.getServiceID())
                     && second.getServiceID().equals(fourth.getServiceID());
             boolean withinWindow = Duration.between(first.getTimestamp(), fourth.getTimestamp())
-                    .getSeconds() <= PING_PONG_WINDOW_SECONDS;
+                    .compareTo(PING_PONG_WINDOW) <= 0;
 
             if (alternating && withinWindow) {
                 alerts.add(alertGenerator.generatePingPongAlert(userId));
