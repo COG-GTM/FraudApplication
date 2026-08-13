@@ -8,39 +8,53 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class MultipleServiceTransactionImpl implements MultipleServiceTransaction {
+
+    /** FR-MST-002: sliding window length, in seconds (boundary inclusive). */
+    public static final long DISTINCT_SERVICE_WINDOW_SECONDS = 5 * 60;
+
+    /** FR-MST-002: more than this many distinct services inside the window is fraudulent. */
+    public static final int DISTINCT_SERVICE_THRESHOLD = 3;
 
     private final AlertGenerator alertGenerator;
 
     @Override
     public List<Alert> checkMultipleServiceTransactions(List<TransactionEvent> transactions, List<Alert> alerts,
                                                         String userId) {
+        if (transactions == null || transactions.isEmpty()) {
+            return alerts;
+        }
 
-        Map<String, String> distintServiceMap = new HashMap<>();
+        List<TransactionEvent> ordered = transactions.stream()
+                .filter(event -> event != null && event.getTimestamp() != null && event.getServiceID() != null)
+                .sorted(Comparator.comparing(TransactionEvent::getTimestamp))
+                .toList();
 
-        TransactionEvent firstTransaction = transactions.get(0);
-        distintServiceMap.put(firstTransaction.getServiceID(), firstTransaction.getTimestamp().toString());
-        for(int i = 1; i < transactions.size(); i++){
-            TransactionEvent nextTransaction = transactions.get(i);
-            if(!firstTransaction.getServiceID().equals(nextTransaction.getServiceID()) &&
-                    Duration.between(firstTransaction.getTimestamp(),
-                            nextTransaction.getTimestamp()).getSeconds() <= (5*60)){
-                distintServiceMap.put(nextTransaction.getServiceID(), nextTransaction.getTimestamp().toString());
+        Deque<TransactionEvent> window = new ArrayDeque<>();
+        for (TransactionEvent event : ordered) {
+            window.addLast(event);
+            while (!window.isEmpty() && Duration.between(window.peekFirst().getTimestamp(),
+                    event.getTimestamp()).getSeconds() > DISTINCT_SERVICE_WINDOW_SECONDS) {
+                window.removeFirst();
             }
-            if(!firstTransaction.getServiceID().equals(nextTransaction.getServiceID()) &&
-                    Duration.between(firstTransaction.getTimestamp(),
-                            nextTransaction.getTimestamp()).getSeconds() > (5*60)){
-                distintServiceMap.remove(firstTransaction.getServiceID());
-                firstTransaction = nextTransaction;
-                distintServiceMap.put(firstTransaction.getServiceID(), firstTransaction.getTimestamp().toString());
+
+            Set<String> distinctServices = new HashSet<>();
+            for (TransactionEvent windowed : window) {
+                distinctServices.add(windowed.getServiceID());
             }
-            if(distintServiceMap.size() > 3){
-               alerts.add(alertGenerator.generateMultipleServiceAlert(userId));
+
+            if (distinctServices.size() > DISTINCT_SERVICE_THRESHOLD) {
+                alerts.add(alertGenerator.generateMultipleServiceAlert(userId));
+                window.clear();
             }
         }
         return alerts;

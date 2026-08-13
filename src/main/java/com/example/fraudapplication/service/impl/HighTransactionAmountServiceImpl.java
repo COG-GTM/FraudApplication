@@ -14,29 +14,44 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HighTransactionAmountServiceImpl implements HighTransactionAmountService {
 
+    /** FR-HTA-001: rolling baseline window, in seconds. */
+    public static final long BASELINE_WINDOW_SECONDS = 24 * 60 * 60;
+
+    /** FR-HTA-001: a transaction is flagged at or above this multiple of the baseline. */
+    public static final double HIGH_AMOUNT_MULTIPLIER = 5.0;
+
     private final AlertGenerator alertGenerator;
 
     @Override
     public List<Alert> checkHighAmountTransactions(List<TransactionEvent> transactions, List<Alert> alerts,
                                                    String userId) {
-        double totalAmount = transactions.stream()
-                .filter(event -> event.getTimestamp().isAfter(Instant.now().minusSeconds(24 * 60 * 60)))
-                .mapToDouble(TransactionEvent::getAmount)
-                .sum();
+        if (transactions == null || transactions.isEmpty()) {
+            return alerts;
+        }
 
-        long total24HoursTransaction = transactions.stream()
-                .filter(event -> event.getTimestamp().isAfter(Instant.now().minusSeconds(24 * 60 * 60)))
-                .toList().size();
+        Instant windowStart = Instant.now().minusSeconds(BASELINE_WINDOW_SECONDS);
+        List<TransactionEvent> scored = transactions.stream()
+                .filter(event -> event != null && event.getTimestamp() != null)
+                .filter(event -> !event.getTimestamp().isBefore(windowStart))
+                .filter(event -> isValidAmount(event.getAmount()))
+                .toList();
 
-        if (!transactions.isEmpty()) {
-            double averageAmount = totalAmount / total24HoursTransaction;
-            for(TransactionEvent event : transactions){
-                if (event.getAmount() > (5 * averageAmount)) {
-                    alerts.add(alertGenerator.generateHighTransactionAlert(userId));
-                }
+        if (scored.size() < 2) {
+            return alerts;
+        }
+
+        double totalAmount = scored.stream().mapToDouble(TransactionEvent::getAmount).sum();
+
+        for (TransactionEvent event : scored) {
+            double baseline = (totalAmount - event.getAmount()) / (scored.size() - 1);
+            if (baseline > 0 && event.getAmount() >= (HIGH_AMOUNT_MULTIPLIER * baseline)) {
+                alerts.add(alertGenerator.generateHighTransactionAlert(userId));
             }
-
         }
         return alerts;
+    }
+
+    private static boolean isValidAmount(double amount) {
+        return Double.isFinite(amount) && amount > 0;
     }
 }
